@@ -1,0 +1,78 @@
+import { NextRequest, NextResponse } from 'next/server'
+import Stripe from 'stripe'
+import { createServerClient } from '@/lib/supabase'
+import { notifyNext, convertWaitlistEntry } from '@/lib/waitlist'
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2026-03-25.dahlia',
+})
+
+// Must disable body parsing so we can verify Stripe signature
+export const config = { api: { bodyParser: false } }
+
+export async function POST(req: NextRequest) {
+  const rawBody = await req.text()
+  const sig = req.headers.get('stripe-signature')
+
+  if (!sig) return NextResponse.json({ error: 'No signature' }, { status: 400 })
+
+  let event: Stripe.Event
+  try {
+    event = stripe.webhooks.constructEvent(rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET!)
+  } catch (err) {
+    console.error('Webhook signature error:', err)
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
+  }
+
+  const supabase = createServerClient()
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as Stripe.Checkout.Session
+    const { order_id, promo_code_id, waitlist_token } = session.metadata ?? {}
+
+    if (!order_id) return NextResponse.json({ ok: true })
+
+    // Mark order as completed
+    await supabase
+      .from('orders')
+      .update({
+        status: 'completed',
+        stripe_payment_id: session.payment_intent as string,
+        confirmed_at: new Date().toISOString(),
+      })
+      .eq('id', order_id)
+
+    // Increment promo code usage
+    if (promo_code_id) {
+      await supabase.rpc('increment_promo_usage', { promo_id: promo_code_id })
+    }
+
+    // Mark waitlist entry as converted if this came from a waitlist invite
+    if (waitlist_token) {
+      await convertWaitlistEntry(waitlist_token)
+    }
+  }
+
+  if (event.type === 'charge.refunded') {
+    const charge = event.data.object as Stripe.Charge
+    if (!charge.payment_intent) return NextResponse.json({ ok: true })
+
+    const { data: order } = await supabase
+      .from('orders')
+      .select('id, event_id')
+      .eq('stripe_payment_id', charge.payment_intent as string)
+      .single()
+
+    if (!order) return NextResponse.json({ ok: true })
+
+    await supabase
+      .from('orders')
+      .update({ status: 'refunded' })
+      .eq('id', order.id)
+
+    // Offer the freed spot to the next person on the waitlist
+    await notifyNext(order.event_id)
+  }
+
+  return NextResponse.json({ ok: true })
+}
