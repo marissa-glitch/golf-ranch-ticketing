@@ -24,9 +24,7 @@ export default function EventCard({ event, tiers, cardImage }: EventCardProps) {
 
   const card = (
     <div
-      className={`group relative rounded-xl overflow-hidden border border-[#e9e9da] bg-white transition-all duration-200 ${
-        isSoldOut ? 'opacity-70' : 'hover:-translate-y-1 hover:shadow-lg cursor-pointer'
-      }`}
+      className="group relative rounded-xl overflow-hidden border border-[#e9e9da] bg-white transition-all duration-200 hover:-translate-y-1 hover:shadow-lg cursor-pointer"
     >
       {/* Image */}
       <div className="relative h-52 w-full overflow-hidden">
@@ -72,8 +70,8 @@ export default function EventCard({ event, tiers, cardImage }: EventCardProps) {
         <p className="text-sm font-medium text-[#171717] mb-4">{priceRange}</p>
 
         {isSoldOut ? (
-          <div className="w-full text-center bg-[#e9e9da] text-[#525252] font-bold py-2.5 rounded-lg text-sm uppercase tracking-wide">
-            Sold Out
+          <div className="w-full text-center bg-[#00505b] text-white font-bold py-2.5 rounded-lg text-sm uppercase tracking-wide group-hover:bg-[#003d45] transition-colors">
+            Join Waitlist
           </div>
         ) : (
           <div className="w-full text-center bg-[#dab806] text-[#003d45] font-bold py-2.5 rounded-lg text-sm uppercase tracking-wide group-hover:bg-[#c9a905] transition-colors">
@@ -83,8 +81,6 @@ export default function EventCard({ event, tiers, cardImage }: EventCardProps) {
       </div>
     </div>
   )
-
-  if (isSoldOut) return card
 
   return <Link href={`/events/${event.slug}`}>{card}</Link>
 }
