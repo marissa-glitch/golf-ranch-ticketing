@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createServerClient } from '@/lib/supabase'
 import { notifyNext, convertWaitlistEntry } from '@/lib/waitlist'
+import { sendConfirmationEmail } from '@/lib/resend'
+import { upsertHubSpotContact } from '@/lib/hubspot'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-03-25.dahlia',
@@ -50,6 +52,38 @@ export async function POST(req: NextRequest) {
     // Mark waitlist entry as converted if this came from a waitlist invite
     if (waitlist_token) {
       await convertWaitlistEntry(waitlist_token)
+    }
+
+    // Fetch full order data for email + HubSpot
+    const { data: fullOrder } = await supabase
+      .from('orders')
+      .select('*, event:events(*), tier:ticket_tiers(*), team:teams(*)')
+      .eq('id', order_id)
+      .single()
+
+    if (fullOrder?.event && fullOrder?.tier) {
+      const nameParts = fullOrder.customer_name.trim().split(/\s+/)
+      const firstName = nameParts[0]
+      const lastName = nameParts.slice(1).join(' ') || ''
+      const inviteLink = fullOrder.team?.invite_code
+        ? `${process.env.NEXT_PUBLIC_BASE_URL}/join/${fullOrder.team.invite_code}`
+        : null
+
+      await Promise.all([
+        sendConfirmationEmail({
+          order: fullOrder,
+          event: fullOrder.event,
+          tier: fullOrder.tier,
+          inviteLink,
+        }),
+        upsertHubSpotContact({
+          email: fullOrder.customer_email,
+          firstName,
+          lastName,
+          phone: fullOrder.customer_phone,
+          venueLocation: `${fullOrder.event.location_name}, ${fullOrder.event.location_state}`,
+        }),
+      ])
     }
   }
 
