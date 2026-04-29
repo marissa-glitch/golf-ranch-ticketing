@@ -57,10 +57,10 @@ export default function EventCard({ event, tiers, cardImage }: EventCardProps) {
 
       {/* Body */}
       <div className="p-4">
-        <p className="text-xs font-semibold text-[#00505b] uppercase tracking-widest mb-1">
-          {event.location_name}, {event.location_state}
-        </p>
         <h3 className="text-lg font-bold text-[#171717] leading-tight mb-1">{event.name}</h3>
+        <p className="text-sm font-semibold text-[#00505b] mb-1">
+          {event.location_name} &mdash; {event.location_state}
+        </p>
         <p className="text-sm text-[#525252] mb-0.5">{formatDateShort(event.date)}</p>
         {event.start_time && event.end_time && (
           <p className="text-sm text-[#525252] mb-3">
