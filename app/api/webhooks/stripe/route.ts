@@ -73,7 +73,8 @@ export async function POST(req: NextRequest) {
         ? `${process.env.NEXT_PUBLIC_BASE_URL}/join/${fullOrder.team.invite_code}`
         : null
 
-      await Promise.all([
+      console.log('Sending email to:', fullOrder.customer_email)
+      const [emailResult, hubspotResult] = await Promise.allSettled([
         sendConfirmationEmail({
           order: fullOrder,
           event: fullOrder.event,
@@ -88,6 +89,9 @@ export async function POST(req: NextRequest) {
           locationName: fullOrder.event.location_name,
         }),
       ])
+      if (emailResult.status === 'rejected') console.error('Email failed:', emailResult.reason)
+      else console.log('Email sent successfully')
+      if (hubspotResult.status === 'rejected') console.error('HubSpot failed:', hubspotResult.reason)
     }
   }
 
