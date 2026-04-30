@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create pending order
-    const { data: order } = await supabase
+    const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
         event_id: event.id,
@@ -91,7 +91,9 @@ export async function POST(req: NextRequest) {
       .select()
       .single()
 
+    if (orderError) console.error('Supabase order insert error:', orderError)
     if (!order) return NextResponse.json({ error: 'Failed to create order' }, { status: 500 })
+    console.log('Order created:', order.id)
 
     // Build Stripe line items
     const lineItems: Stripe.Checkout.SessionCreateParams['line_items'] = [

@@ -32,10 +32,12 @@ export async function POST(req: NextRequest) {
     const session = event.data.object as Stripe.Checkout.Session
     const { order_id, promo_code_id, waitlist_token } = session.metadata ?? {}
 
+    console.log('checkout.session.completed — order_id:', order_id)
+
     if (!order_id) return NextResponse.json({ ok: true })
 
     // Mark order as completed
-    await supabase
+    const { error: updateError } = await supabase
       .from('orders')
       .update({
         status: 'completed',
@@ -43,6 +45,8 @@ export async function POST(req: NextRequest) {
         confirmed_at: new Date().toISOString(),
       })
       .eq('id', order_id)
+
+    if (updateError) console.error('Order update failed:', updateError)
 
     // Increment promo code usage
     if (promo_code_id) {
