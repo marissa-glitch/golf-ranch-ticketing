@@ -3,18 +3,34 @@ interface ContactParams {
   firstName: string
   lastName: string
   phone?: string | null
-  venueLocation: string
+  locationName: string
 }
 
-export async function upsertHubSpotContact({ email, firstName, lastName, phone, venueLocation }: ContactParams) {
+// Maps event location_name to HubSpot's "location" dropdown internal values
+const VENUE_MAP: Record<string, string> = {
+  'Richardson': 'Richardson',
+  "Lee's Summit": "Lee's Summit",
+  'Shoal Creek': 'Shoal Creek',
+  'Brookfield': 'Brookfield',
+  'Grand Prairie': 'Golf Ranch - Grand Prairie',
+  'Glendale': 'Golf Ranch - Glendale',
+}
+
+export async function upsertHubSpotContact({ email, firstName, lastName, phone, locationName }: ContactParams) {
   const token = process.env.HUBSPOT_ACCESS_TOKEN
   if (!token) return
+
+  const hubspotVenue = VENUE_MAP[locationName]
+  if (!hubspotVenue) {
+    console.error(`No HubSpot venue mapping found for location: ${locationName}`)
+    return
+  }
 
   const properties: Record<string, string> = {
     email,
     firstname: firstName,
     lastname: lastName,
-    [process.env.HUBSPOT_VENUE_PROPERTY ?? 'golf_ranch_location']: venueLocation,
+    location: hubspotVenue,
   }
   if (phone) properties.phone = phone
 

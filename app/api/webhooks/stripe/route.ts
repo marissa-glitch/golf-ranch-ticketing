@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
           firstName,
           lastName,
           phone: fullOrder.customer_phone,
-          venueLocation: `${fullOrder.event.location_name}, ${fullOrder.event.location_state}`,
+          locationName: fullOrder.event.location_name,
         }),
       ])
     }
