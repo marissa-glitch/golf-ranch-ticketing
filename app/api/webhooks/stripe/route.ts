@@ -59,11 +59,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Fetch full order data for email + HubSpot
-    const { data: fullOrder } = await supabase
+    const { data: fullOrder, error: fullOrderError } = await supabase
       .from('orders')
-      .select('*, event:events(*), tier:ticket_tiers(*), team:teams(*)')
+      .select('*, event:events!event_id(*), tier:ticket_tiers!ticket_tier_id(*), team:teams!team_id(*)')
       .eq('id', order_id)
       .single()
+
+    if (fullOrderError) console.error('Full order fetch error:', fullOrderError)
 
     if (fullOrder?.event && fullOrder?.tier) {
       const nameParts = fullOrder.customer_name.trim().split(/\s+/)

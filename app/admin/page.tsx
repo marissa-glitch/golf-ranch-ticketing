@@ -20,9 +20,9 @@ export default async function AdminPage() {
     .from('orders')
     .select(`
       *,
-      events(name, location_name, location_state),
-      ticket_tiers(name, is_team),
-      teams(team_name)
+      events!event_id(name, location_name, location_state),
+      ticket_tiers!ticket_tier_id(name, is_team),
+      teams!team_id(team_name)
     `)
     .order('created_at', { ascending: false })
 
