@@ -41,7 +41,7 @@ export async function upsertHubSpotContact({ email, firstName, lastName, phone, 
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({
-      inputs: [{ idProperty: 'email', properties }],
+      inputs: [{ idProperty: 'email', id: email, properties }],
     }),
   })
 
