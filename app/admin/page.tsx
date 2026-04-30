@@ -16,7 +16,7 @@ export default async function AdminPage() {
 
   const supabase = createServerClient()
 
-  const { data: orders } = await supabase
+  const { data: orders, error: ordersError } = await supabase
     .from('orders')
     .select(`
       *,
@@ -25,6 +25,9 @@ export default async function AdminPage() {
       teams(team_name)
     `)
     .order('created_at', { ascending: false })
+
+  if (ordersError) console.error('Admin orders query error:', ordersError)
+  console.log('Admin orders count:', orders?.length ?? 0)
 
   const { data: events } = await supabase
     .from('events')
